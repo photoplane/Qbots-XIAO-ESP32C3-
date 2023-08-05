@@ -6,5 +6,4 @@ Installation of components on the board.
 
 
 
-https://github.com/photoplane/QbotsXiaoEcp32C3/assets/31778273/56ec4d5a-3bef-4f3d-8166-c658bbc12c06
 
