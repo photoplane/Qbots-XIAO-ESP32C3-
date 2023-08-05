@@ -1,0 +1,197 @@
+\ Qbot with XIAO ESP32C3 and PWM_DVR8833
+FORTH DEFINITIONS also
+
+LEDC
+DECIMAL
+
+FORTH DEFINITIONS also LEDC DECIMAL
+
+\ movements Robot many thanks to PETER FORTH
+( PWM_DVR8833  )
+
+21 constant PWM_AIN1 \ vert
+7 constant PWM_AIN2 \ blanc
+5 constant PWM_BIN1 \ jaune
+6 constant PWM_BIN2 \ bleu
+
+1 constant chRIGHT1
+2 constant chRIGHT2
+3 constant chRIGHT3
+4 constant chRIGHT4
+
+: init-pwm
+PWM_AIN1 chRIGHT1 ledcAttachPin
+PWM_BIN1 chRIGHT2 ledcAttachPin
+PWM_AIN2 chRIGHT3 ledcAttachPin
+PWM_BIN2 chRIGHT4 ledcAttachPin
+chRIGHT1 50000 10 ledcSetup
+chRIGHT2 50000 10 ledcSetup
+chRIGHT3 50000 10 ledcSetup
+chRIGHT4 0000 10 ledcSetup
+; 
+
+: roue1 ( speed -- ) chRIGHT1 swap ledcWrite ;
+: roue2 ( speed -- ) chRIGHT2 swap ledcWrite ;
+: roue3 ( speed -- ) chRIGHT3 swap ledcWrite ;
+: roue4 ( speed -- ) chRIGHT4 swap ledcWrite ;
+
+
+init-pwm
+
+\  400  value del 
+\  200  value del 
+   100 value del \ speed pour la pince for the clamp
+: AR1 del  roue1 ;
+: AR2 del  roue2 ;
+: AR AR1 AR2 ;
+
+: AV1 del  roue3 ;
+: AV2 del  roue4 ;  \ : AV2 del=93 roue4 ; no use
+: AV AV1 AV2 ;
+
+: st1 0 roue1 ;
+: st2 0 roue2 ;
+: st3 0 roue3 ;
+: st4 0 roue4 ;
+: S st1 st2 st3 st4 ;
+
+: turnD AV1 AR2  ; \ tourne droite right
+: turnD AV1 AR2  ; \ tourne droite right
+: turnG AV2 AR1  ; \ tourne gauche left
+
+ : alrt av 1000 ms s ar 1000 ms S ;
+ : top begin alrt key? until ;
+
+drop drop drop
+
+ ." PWM_DVR8833_alrt_OK "
+
+\ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+(  SERVO ARM=BRAS CLAMP=PINCE )
+
+FORTH DEFINITIONS also LEDC
+( vocabulary )
+DECIMAL
+2 constant PWMarm \ commande du bras
+0 constant chARM
+
+3 constant PWMclamp \ commande de la pince
+5 constant chCLAMP
+
+: init-pwmARM
+PWMarm chARM ledcAttachPin
+chARM 40000 10 ledcSetup ;
+
+: init-pwmCLAMP
+PWMclamp chCLAMP ledcAttachPin
+chCLAMP 40000 10 ledcSetup ;
+
+: servoARM ( speed -- ) chARM swap ledcWrite ;
+: servoCLAMP ( speed -- ) chCLAMP swap ledcWrite ;
+
+init-pwmARM
+init-pwmCLAMP
+
+( brutal )
+: clampOpen  30 servoCLAMP ; 
+: clampClose 50 servoCLAMP ;
+: armHight   20 servoARM ;
+: armDown    60 servoARM ;
+
+( soft doux )
+: >clampClose  50 36 DO I servoCLAMP 100 ms 1 +LOOP ;
+: >clampOpen 34 50 DO I servoCLAMP 100 ms -1 +LOOP ; 
+
+: >armDown 60 25 DO I servoARM 100 ms 1 +LOOP ; 
+: >armHight 25 60 DO I servoARM 100 ms -1 +LOOP ;
+
+: demo >clampClose 500 ms >armHight 1000 ms >armDown 500 ms >clampOpen ;
+
+." ServosQbot_demo_OK "
+
+
+\ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\ Ultrason littleRobot many thanks to Atle Bergstrom 
+ 
+:  ... 200 ms ;
+                                                  
+decimal forth ledc 
+                                        
+10 constant PIN_ECHO \ fil jaune 
+20 constant PIN_TRIG \ fil vert
+              
+PIN_TRIG output pinmode      
+PIN_ECHO input pinmode 
+
+: trig
+LOW PIN_TRIG pin 2 ms 
+LOW PIN_TRIG pin 2 ms 
+HIGH PIN_TRIG pin 10 ms 
+LOW PIN_TRIG pin
+;
+
+: init
+  PIN_TRIG OUTPUT pinMode PIN_ECHO INPUT pinMode
+;
+ 
+init
+
+: echo
+    PIN_ECHO pulsein  
+;
+
+\ ARH = A : FORWARD R : BACKWARD H: STOP
+( > soft doux )
+
+: ARH 
+    S ... >armDown ... >clampClose ...
+ S ... >armHight  ... turnD 5000 ms
+... S ... >armDown  ... >clampOpen
+... AR 1000 ms armHight ...  S  ...   bye 
+;
+
+: scanQ ( --- )
+    trig echo 10 /  dup 
+    . cr 43 < IF 
+        ARH 
+    THEN 
+    
+; 
+
+
+: top! 
+10000 ms clampOpen ...  armHight ...
+3000 ms
+AV  
+ BEGIN  
+        scanQ key? 
+    UNTIL 
+    S 
+;
+
+
+
+." QbotUltrason_top!_OK "
+
+\ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+: testAV 4000 ms armHight AV 12000 ms S ; 
+
+\ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+( TestorUltrason )                                           
+DECIMAL                                 
+20 constant trigpin  \ fil vert
+10 constant echopin  \ fil jaune 
+: init trigpin output pinmode echopin input pinmode ;    
+init                                                        
+: trig low trigpin pin 2 ms high trigpin pin 10 ms             
+low trigpin pin ; 
+
+: echo echopin pulsein ;              
+: scan trig echo . cr ;                                  
+: testus  10 for scan next  ; 
+." TesteurUltrason testus OK "
+
+." Qbotcomplete top! OK "
