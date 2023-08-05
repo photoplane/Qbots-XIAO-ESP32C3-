@@ -6,4 +6,8 @@ Installation of components on the board.
 
 
 
+https://github.com/photoplane/Qbots-XIAO-ESP32C3-/assets/31778273/008f95ce-11fc-47c4-b4bd-09af73a99a71
+
+
+
 
